@@ -9,7 +9,7 @@ __pycache__/
 # other
 EMA-VFI/log*
 EMA-VFI/ckpt*
-EMA-VFI/vscode
+EMA-VFI/.vscode
 
 # Distribution / packaging
 .Python
