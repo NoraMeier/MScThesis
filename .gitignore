@@ -6,6 +6,11 @@ __pycache__/
 # C extensions
 *.so
 
+# other
+EMA-VFI/log*
+EMA-VFI/ckpt*
+EMA-VFI/vscode
+
 # Distribution / packaging
 .Python
 build/
