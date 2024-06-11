@@ -14,6 +14,7 @@ from benchmark.utils.padder import InputPadder
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default='ours', type=str)
+parser.add_argument('--input_dir', default='example/ex1', type=str)
 args = parser.parse_args()
 assert args.model in ['ours', 'ours_small'], 'Model not exists!'
 
@@ -41,8 +42,8 @@ model.device()
 
 print(f'=========================Start Generating=========================')
 
-I0 = cv2.imread('example/img1.jpg')
-I2 = cv2.imread('example/img2.jpg') 
+I0 = cv2.imread(args.input_dir + '/img1.jpg')
+I2 = cv2.imread(args.input_dir + '/img3.jpg') 
 
 I0_ = (torch.tensor(I0.transpose(2, 0, 1)).cuda() / 255.).unsqueeze(0)
 I2_ = (torch.tensor(I2.transpose(2, 0, 1)).cuda() / 255.).unsqueeze(0)
@@ -52,7 +53,7 @@ I0_, I2_ = padder.pad(I0_, I2_)
 
 mid = (padder.unpad(model.inference(I0_, I2_, TTA=TTA, fast_TTA=TTA))[0].detach().cpu().numpy().transpose(1, 2, 0) * 255.0).astype(np.uint8)
 images = [I0[:, :, ::-1], mid[:, :, ::-1], I2[:, :, ::-1]]
-mimsave('example/out_2x.gif', images, fps=3)
-
+#mimsave('example/out_2x.gif', images, fps=3)
+cv2.imwrite(args.input_dir + '/img2.jpg', mid)
 
 print(f'=========================Done=========================')
