@@ -12,9 +12,13 @@ import config as cfg
 from Trainer import Model
 from benchmark.utils.padder import InputPadder
 
+
+UNCERTAINTY_SAMPLES = 10
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default='ours', type=str)
 parser.add_argument('--input_dir', default='example/ex1', type=str)
+parser.add_argument('--uncertainty', default=True, type=bool)
 args = parser.parse_args()
 assert args.model in ['ours', 'ours_small'], 'Model not exists!'
 
@@ -50,10 +54,22 @@ I2_ = (torch.tensor(I2.transpose(2, 0, 1)).cuda() / 255.).unsqueeze(0)
 
 padder = InputPadder(I0_.shape, divisor=32)
 I0_, I2_ = padder.pad(I0_, I2_)
-
+    
 mid = (padder.unpad(model.inference(I0_, I2_, TTA=TTA, fast_TTA=TTA))[0].detach().cpu().numpy().transpose(1, 2, 0) * 255.0).astype(np.uint8)
-images = [I0[:, :, ::-1], mid[:, :, ::-1], I2[:, :, ::-1]]
-#mimsave('example/out_2x.gif', images, fps=3)
-cv2.imwrite(args.input_dir + '/img2.jpg', mid)
+
+if args.uncertainty:
+    preds = np.zeros((UNCERTAINTY_SAMPLES,) + mid.shape)
+    for i in range(UNCERTAINTY_SAMPLES):
+        preds[i] = (padder.unpad(model.inference(I0_, I2_, TTA=TTA, fast_TTA=TTA))[0].detach().cpu().numpy().transpose(1, 2, 0) * 255.0).astype(np.uint8)
+    pred = np.mean(preds, axis=0)
+    sd = np.std(preds, axis=0)
+    if (sd == np.zeros(sd.shape)).all():
+        print("Problems :(")
+    cv2.imwrite(args.input_dir + '/img2.jpg', pred)
+    cv2.imwrite(args.input_dir + '/std.jpg', sd)
+else:
+    images = [I0[:, :, ::-1], mid[:, :, ::-1], I2[:, :, ::-1]]
+    #mimsave('example/out_2x.gif', images, fps=3)
+    cv2.imwrite(args.input_dir + '/img2.jpg', mid)
 
 print(f'=========================Done=========================')

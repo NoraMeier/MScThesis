@@ -27,22 +27,22 @@ def init_model_config(F=32, W=7, depth=[2, 2, 2, 4, 4]):
         'c':F
     }
 
+#MODEL_CONFIG = {
+#    'LOGNAME': 'ours',
+#    'MODEL_TYPE': (feature_extractor, flow_estimation),
+#    'MODEL_ARCH': init_model_config(
+#        F = 32,
+#        W = 7,
+#        depth = [2, 2, 2, 4, 4]
+#    )
+#}
+
 MODEL_CONFIG = {
-    'LOGNAME': 'ours',
+    'LOGNAME': 'ours_small',
     'MODEL_TYPE': (feature_extractor, flow_estimation),
     'MODEL_ARCH': init_model_config(
-        F = 32,
+        F = 16,
         W = 7,
-        depth = [2, 2, 2, 4, 4]
+        depth = [2, 2, 2, 2, 2]
     )
 }
-
-# MODEL_CONFIG = {
-#     'LOGNAME': 'ours_small',
-#     'MODEL_TYPE': (feature_extractor, flow_estimation),
-#     'MODEL_ARCH': init_model_config(
-#         F = 16,
-#         W = 7,
-#         depth = [2, 2, 2, 2, 2]
-#     )
-# }
