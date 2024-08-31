@@ -5,6 +5,10 @@ import torch.nn.functional as F
 from .warplayer import warp
 from .refine import *
 
+
+DROPOUT_FRACTION = 0.2
+
+
 def conv(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
     return nn.Sequential(
         nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride,
@@ -13,16 +17,37 @@ def conv(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
     )
 
 
+class UncertaintyDropout2D(nn.Dropout2d):
+    def __init__(self, p=0.5, inplace=False):
+        super().__init__(p, inplace)
+        self.train = True
+
+    def train(self, mode: bool = True):
+        pass
+
+    def eval(self):
+        pass
+
+
 class Head(nn.Module):
-    def __init__(self, in_planes, scale, c, in_else=17):
+    def __init__(self, in_planes, scale, c, in_else=17,  uncertainty=False):
         super(Head, self).__init__()
         self.upsample = nn.Sequential(nn.PixelShuffle(2), nn.PixelShuffle(2))
         self.scale = scale
-        self.conv = nn.Sequential(
-                                  conv(in_planes*2 // (4*4) + in_else, c),
-                                  conv(c, c),
-                                  conv(c, 5),
-                                  )  
+        if uncertainty:
+            self.conv = nn.Sequential(
+                                    conv(in_planes*2 // (4*4) + in_else, c),
+                                    UncertaintyDropout2D(p=DROPOUT_FRACTION),
+                                    conv(c, c),
+                                    UncertaintyDropout2D(p=DROPOUT_FRACTION),
+                                    conv(c, 5),
+                                    )
+        else:
+            self.conv = nn.Sequential(
+                                    conv(in_planes*2 // (4*4) + in_else, c),
+                                    conv(c, c),
+                                    conv(c, 5),
+                                    )  
 
     def forward(self, motion_feature, x, flow): # /16 /8 /4
         motion_feature = self.upsample(motion_feature) #/4 /2 /1
@@ -43,14 +68,15 @@ class Head(nn.Module):
 
     
 class MultiScaleFlow(nn.Module):
-    def __init__(self, backbone, **kargs):
+    def __init__(self, backbone, uncertainty_flowest=False, uncertainty_refine=False, **kargs):
         super(MultiScaleFlow, self).__init__()
         self.flow_num_stage = len(kargs['hidden_dims'])
         self.feature_bone = backbone
         self.block = nn.ModuleList([Head( kargs['motion_dims'][-1-i] * kargs['depths'][-1-i] + kargs['embed_dims'][-1-i], 
                             kargs['scales'][-1-i], 
                             kargs['hidden_dims'][-1-i],
-                            6 if i==0 else 17) 
+                            6 if i==0 else 17,
+                            uncertainty=(True if uncertainty_flowest else False)) 
                             for i in range(self.flow_num_stage)])
         self.unet = Unet(kargs['c'] * 2)
 

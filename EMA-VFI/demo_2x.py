@@ -13,12 +13,20 @@ from Trainer import Model
 from benchmark.utils.padder import InputPadder
 
 
+class Ensemble():
+    def __init__(self, model_path):
+        self.models = []
+        
+
+
+
 UNCERTAINTY_SAMPLES = 10
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default='ours', type=str)
 parser.add_argument('--input_dir', default='example/ex1', type=str)
-parser.add_argument('--uncertainty', default=True, type=bool)
+parser.add_argument('--uncertainty', default="none", type=str, choices=["none", "featextr", "flowest", "refine", "ensemble"])
+
 args = parser.parse_args()
 assert args.model in ['ours', 'ours_small'], 'Model not exists!'
 
@@ -57,7 +65,24 @@ I0_, I2_ = padder.pad(I0_, I2_)
     
 mid = (padder.unpad(model.inference(I0_, I2_, TTA=TTA, fast_TTA=TTA))[0].detach().cpu().numpy().transpose(1, 2, 0) * 255.0).astype(np.uint8)
 
-if args.uncertainty:
+if args.uncertainty == "none":
+    images = [I0[:, :, ::-1], mid[:, :, ::-1], I2[:, :, ::-1]]
+    #mimsave('example/out_2x.gif', images, fps=3)
+    cv2.imwrite(args.input_dir + '/img2.jpg', mid)
+
+elif args.uncertainty == "ensemble":
+    ensemble = Ensemble()
+else:
+    if args.uncertainty == "featexrt":
+        model = Model(-1, dropout_featextr=True)
+    elif args.uncertainty == "flowest":
+        model = Model(-1, dropout_flowest=True)
+    else:
+        print("uncertainty method not implemented")
+        exit(-1)
+    model.eval()
+    model.device()
+    
     preds = np.zeros((UNCERTAINTY_SAMPLES,) + mid.shape)
     for i in range(UNCERTAINTY_SAMPLES):
         preds[i] = (padder.unpad(model.inference(I0_, I2_, TTA=TTA, fast_TTA=TTA))[0].detach().cpu().numpy().transpose(1, 2, 0) * 255.0).astype(np.uint8)
@@ -67,9 +92,6 @@ if args.uncertainty:
         print("Problems :(")
     cv2.imwrite(args.input_dir + '/img2.jpg', pred)
     cv2.imwrite(args.input_dir + '/std.jpg', sd)
-else:
-    images = [I0[:, :, ::-1], mid[:, :, ::-1], I2[:, :, ::-1]]
-    #mimsave('example/out_2x.gif', images, fps=3)
-    cv2.imwrite(args.input_dir + '/img2.jpg', mid)
+    
 
 print(f'=========================Done=========================')
