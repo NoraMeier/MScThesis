@@ -73,7 +73,7 @@ def depad_if_needed(x, size, window_size):
 
 
 class Mlp(nn.Module):
-    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=DROPOUT_FRACTION, uncertainty=True):
+    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=DROPOUT_FRACTION, uncertainty=False):
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
@@ -112,11 +112,11 @@ class Mlp(nn.Module):
         
 
 class InterFrameAttention(nn.Module):
-    def __init__(self, dim, motion_dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=DROPOUT_FRACTION, proj_drop=DROPOUT_FRACTION, uncertainty=True):
+    def __init__(self, dim, motion_dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=DROPOUT_FRACTION, proj_drop=DROPOUT_FRACTION, uncertainty=False):
         super().__init__()
         assert dim % num_heads == 0, f"dim {dim} should be divided by num_heads {num_heads}."
 
-        print(attn_drop)
+        print(uncertainty)
 
         self.dim = dim
         self.motion_dim = motion_dim
@@ -179,7 +179,7 @@ class InterFrameAttention(nn.Module):
 
 class MotionFormerBlock(nn.Module):
     def __init__(self, dim, motion_dim, num_heads, window_size=0, shift_size=0, mlp_ratio=4., bidirectional=True, qkv_bias=False, qk_scale=None, drop=DROPOUT_FRACTION, attn_drop=DROPOUT_FRACTION,
-                 drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm, uncertainty=True,):
+                 drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm, uncertainty=False,):
         super().__init__()
         self.window_size = window_size
         if not isinstance(self.window_size, (tuple, list)):
@@ -431,7 +431,7 @@ class MotionFormer(nn.Module):
                         dim=embed_dims[i], motion_dim=motion_dims[i], num_heads=num_heads[i-self.conv_stages], window_size=window_sizes[i-self.conv_stages], 
                         shift_size= 0 if (j % 2) == 0 else window_sizes[i-self.conv_stages] // 2,
                         mlp_ratio=mlp_ratios[i-self.conv_stages], qkv_bias=qkv_bias, qk_scale=qk_scale,
-                        drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[cur + j], norm_layer=norm_layer)
+                        drop=drop_rate, attn_drop=attn_drop_rate, drop_path=dpr[cur + j], norm_layer=norm_layer, uncertainty=uncertainty)
                         for j in range(depths[i])])
 
                     norm = norm_layer(embed_dims[i])
@@ -528,6 +528,7 @@ class UncertaintyDropout(nn.Dropout):
         pass
 
 
-def feature_extractor(uncertainty=True, **kargs):
+def feature_extractor(uncertainty=False, **kargs):
+    print(str(uncertainty) + " at start")
     model = MotionFormer(uncertainty=uncertainty, **kargs)
     return model

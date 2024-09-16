@@ -73,13 +73,16 @@ if args.uncertainty == "none":
 elif args.uncertainty == "ensemble":
     ensemble = Ensemble()
 else:
-    if args.uncertainty == "featexrt":
+    model_name = args.model
+    if args.uncertainty == "featextr":
         model = Model(-1, dropout_featextr=True)
     elif args.uncertainty == "flowest":
         model = Model(-1, dropout_flowest=True)
+        model_name = f"drop_flowest/{args.model}_0"
     else:
         print("uncertainty method not implemented")
         exit(-1)
+    model.load_model(name=model_name, custom=True)
     model.eval()
     model.device()
     
@@ -91,7 +94,11 @@ else:
     if (sd == np.zeros(sd.shape)).all():
         print("Problems :(")
     cv2.imwrite(args.input_dir + '/img2.jpg', pred)
-    cv2.imwrite(args.input_dir + '/std.jpg', sd)
+
+    sd_convert = 255 * cv2.cvtColor(sd.astype(np.float32), cv2.COLOR_BGR2GRAY)
+    sd_convert = sd_convert.astype(np.int8)
+    cv2.imwrite(args.input_dir + '/std.jpg', sd_convert) 
+    cv2.imwrite(args.input_dir + '/std_old.jpg', sd) 
     
 
 print(f'=========================Done=========================')
