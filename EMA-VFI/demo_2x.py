@@ -1,8 +1,7 @@
+import numpy as np
 import cv2
-import math
 import sys
 import torch
-import numpy as np
 import argparse
 from imageio import mimsave
 
@@ -79,6 +78,9 @@ else:
     elif args.uncertainty == "flowest":
         model = Model(-1, dropout_flowest=True)
         model_name = f"drop_flowest/{args.model}_0"
+    elif args.uncertainty == "refine":
+        model = Model(-1, )
+        model_name = f"drop_refine/{args.model}_0"
     else:
         print("uncertainty method not implemented")
         exit(-1)

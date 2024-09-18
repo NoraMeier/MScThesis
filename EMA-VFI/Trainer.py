@@ -9,7 +9,7 @@ from config import *
 
     
 class Model:
-    def __init__(self, local_rank, dropout_featextr=False, dropout_flowest=False):
+    def __init__(self, local_rank, dropout_featextr=False, dropout_flowest=False, dropout_refine=False):
         backbonetype, multiscaletype = MODEL_CONFIG['MODEL_TYPE']
         backbonecfg, multiscalecfg = MODEL_CONFIG['MODEL_ARCH']
         self.net = multiscaletype(backbonetype(**backbonecfg, uncertainty=dropout_featextr), 

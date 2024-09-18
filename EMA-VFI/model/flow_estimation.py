@@ -6,7 +6,7 @@ from .warplayer import warp
 from .refine import *
 
 
-DROPOUT_FRACTION = 0.2
+DROPOUT_FRACTION = 0.1
 
 
 def conv(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
@@ -39,7 +39,6 @@ class Head(nn.Module):
                                     conv(in_planes*2 // (4*4) + in_else, c),
                                     UncertaintyDropout2D(p=DROPOUT_FRACTION),
                                     conv(c, c),
-                                    UncertaintyDropout2D(p=DROPOUT_FRACTION),
                                     conv(c, 5),
                                     )
         else:
@@ -76,9 +75,9 @@ class MultiScaleFlow(nn.Module):
                             kargs['scales'][-1-i], 
                             kargs['hidden_dims'][-1-i],
                             6 if i==0 else 17,
-                            uncertainty=(True if uncertainty_flowest else False)) 
+                            uncertainty=uncertainty_flowest) 
                             for i in range(self.flow_num_stage)])
-        self.unet = Unet(kargs['c'] * 2)
+        self.unet = Unet(kargs['c'] * 2, uncertainty=uncertainty_refine)
 
     def warp_features(self, xs, flow):
         y0 = []
