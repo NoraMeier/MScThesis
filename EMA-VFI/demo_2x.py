@@ -79,7 +79,7 @@ else:
         model = Model(-1, dropout_flowest=True)
         model_name = f"drop_flowest/{args.model}_0"
     elif args.uncertainty == "refine":
-        model = Model(-1, )
+        model = Model(-1, dropout_refine=True)
         model_name = f"drop_refine/{args.model}_0"
     else:
         print("uncertainty method not implemented")

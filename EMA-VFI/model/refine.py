@@ -22,7 +22,7 @@ def deconv(in_planes, out_planes, kernel_size=4, stride=2, padding=1):
 class UncertaintyDropout2D(nn.Dropout2d):
     def __init__(self, p=0.5, inplace=False):
         super().__init__(p, inplace)
-        self.train = True
+        self.training = True
 
     def train(self, mode: bool = True):
         pass
@@ -48,7 +48,9 @@ class Unet(nn.Module):
         self.down0 = Conv2(17+c, 2*c)
         self.down1 = Conv2(4*c, 4*c)
         self.down2 = Conv2(8*c, 8*c)
-        self.drop = UncertaintyDropout2D(p=0.1)
+        if uncertainty:
+            self.drop = UncertaintyDropout2D(p=0.1)
+        self.uncertainty = uncertainty
         self.down3 = Conv2(16*c, 16*c)
         self.up0 = deconv(32*c, 8*c)
         self.up1 = deconv(16*c, 4*c)
@@ -76,7 +78,7 @@ class Unet(nn.Module):
         s0 = self.down0(torch.cat((img0, img1, warped_img0, warped_img1, mask, flow,c0[0], c1[0]), 1))
         s1 = self.down1(torch.cat((s0, c0[1], c1[1]), 1))
         s2 = self.down2(torch.cat((s1, c0[2], c1[2]), 1))
-        if self.uncertainty_refine:
+        if self.uncertainty:
             s2 = self.drop(s2)
         s3 = self.down3(torch.cat((s2, c0[3], c1[3]), 1))
         x = self.up0(torch.cat((s3, c0[4], c1[4]), 1))

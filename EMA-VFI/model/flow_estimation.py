@@ -20,7 +20,7 @@ def conv(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
 class UncertaintyDropout2D(nn.Dropout2d):
     def __init__(self, p=0.5, inplace=False):
         super().__init__(p, inplace)
-        self.train = True
+        self.training = True
 
     def train(self, mode: bool = True):
         pass

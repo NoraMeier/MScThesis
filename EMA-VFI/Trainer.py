@@ -13,7 +13,7 @@ class Model:
         backbonetype, multiscaletype = MODEL_CONFIG['MODEL_TYPE']
         backbonecfg, multiscalecfg = MODEL_CONFIG['MODEL_ARCH']
         self.net = multiscaletype(backbonetype(**backbonecfg, uncertainty=dropout_featextr), 
-                                    **multiscalecfg, uncertainty_flowest=dropout_flowest)
+                                    **multiscalecfg, uncertainty_flowest=dropout_flowest, uncertainty_refine=dropout_refine)
         self.name = MODEL_CONFIG['LOGNAME']
         self.device()
 
