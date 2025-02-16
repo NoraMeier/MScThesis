@@ -23,6 +23,10 @@ INIT_LR = 2e-4
 LR_DECAY = 1e-4
 WARM_UP_STEPS = 2500
 
+UNCERTAINTY_FEATURE_EXTRACTION = False
+UNCERTAINTY_FLOW_ESTIMATION = False
+UNCERTAINTY_REFINE = True
+
 def get_learning_rate(step):
     if step < WARM_UP_STEPS:
         mul = step / WARM_UP_STEPS
@@ -37,10 +41,27 @@ def get_learning_rate_alt(lr, decay):
         lr = 2e-5
     return lr
 
-def train(model, local_rank, batch_size, data_path, log_id):
+
+def get_first_epoch(save_dir, log_id):
+    step_file_path = f'step_dir/{save_dir}/model{log_id}_step.txt'
+    if os.path.exists(step_file_path):
+        with open(step_file_path, 'r') as text_file:
+            return int(text_file.readline())
+    elif not os.path.exists(f'step_dir/{save_dir}'):
+        os.mkdir(f'step_dir/{save_dir}')
+
+    return 0
+
+
+def save_epoch(epoch, save_dir, log_id):
+    with open(f'step_dir/{save_dir}/model{log_id}_step.txt', 'w') as file:
+        file.write(str(epoch))
+
+
+def train(model, local_rank, batch_size, data_path, log_id, model_save_dir):
     if local_rank == 0:
-        writer = SummaryWriter('log/train_EMAVFI_' + log_id)
-    step = 0
+        writer = SummaryWriter(f'log/{model_save_dir}train_EMAVFI_{log_id}')
+    
     nr_eval = 0
     best = 0
     dataset = VimeoDataset(data_path, train_set=True)
@@ -52,9 +73,15 @@ def train(model, local_rank, batch_size, data_path, log_id):
     sampler_val = RandomSampler(dataset_val)
     val_data = DataLoader(dataset_val, batch_size=batch_size, pin_memory=True, num_workers=8, sampler=sampler_val)
     
+    start_epoch = get_first_epoch(model_save_dir, log_id)
+    if start_epoch > 0:
+        model.load_model(name=f"{model_save_dir}/ours_small_{log_id}", custom=True)
+    step = start_epoch * args.step_per_epoch
+
     print('training...')
     time_stamp = time.time()
-    for epoch in range(300):
+    for epoch in range(start_epoch, 300):
+        save_epoch(epoch, model_save_dir, log_id)
         #sampler.set_epoch(epoch)
         print(f"epoch {epoch}")
         for i, imgs in enumerate(train_data):
@@ -75,14 +102,14 @@ def train(model, local_rank, batch_size, data_path, log_id):
             step += 1
         nr_eval += 3
         if nr_eval % 3 == 0:
-            evaluate(model, val_data, nr_eval, local_rank, log_id)
-        model.save_model(local_rank)    
+            evaluate(model, val_data, nr_eval, local_rank, log_id, model_save_dir)
+        model.save_model(local_rank, directory=model_save_dir)
             
         #dist.barrier()
 
-def evaluate(model, val_data, nr_eval, local_rank, log_id):
+def evaluate(model, val_data, nr_eval, local_rank, log_id, save_dir):
     if local_rank == 0:
-        writer_val = SummaryWriter('log/validate_EMAVFI_' + log_id)
+        writer_val = SummaryWriter(f'log/{save_dir}validate_EMAVFI_{log_id}')
 
     psnr = []
     for _, imgs in enumerate(val_data):
@@ -105,17 +132,22 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', default=8, type=int, help='batch size')
     parser.add_argument('--data_path', type=str, help='data path of vimeo90k')
     parser.add_argument('--log_id', default='0', type=str)
+    parser.add_argument('--save_dir', default="None", type=str)
     args = parser.parse_args()
+    save_dir = f"{args.save_dir}/" if args.save_dir != "None" else ''
+        
     #torch.distributed.init_process_group(backend="mpi", world_size=args.world_size)
     torch.cuda.set_device(args.local_rank)
     if args.local_rank == 0 and not os.path.exists('log'):
         os.mkdir('log')
-    seed = 1234
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    if save_dir != None and not os.path.exists(f'log/{save_dir[-1]}'):
+        os.mkdir(f'log/{save_dir[:-1]}')
+    #seed = 1234
+    #random.seed(seed)
+    #np.random.seed(seed)
+    #torch.manual_seed(seed)
+    #torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.benchmark = True
-    model = Model(args.local_rank)
-    train(model, args.local_rank, args.batch_size, args.data_path, args.log_id)
+    model = Model(args.local_rank, uncertainty_flowest=UNCERTAINTY_FLOW_ESTIMATION, uncertainty_refine=UNCERTAINTY_REFINE)
+    train(model, args.local_rank, args.batch_size, args.data_path, args.log_id, save_dir)
         

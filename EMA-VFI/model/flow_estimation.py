@@ -5,10 +5,6 @@ import torch.nn.functional as F
 from .warplayer import warp
 from .refine import *
 
-
-DROPOUT_FRACTION = 0.1
-
-
 def conv(in_planes, out_planes, kernel_size=3, stride=1, padding=1, dilation=1):
     return nn.Sequential(
         nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride,
@@ -30,20 +26,21 @@ class UncertaintyDropout2D(nn.Dropout2d):
 
 
 class Head(nn.Module):
-    def __init__(self, in_planes, scale, c, in_else=17,  uncertainty=False):
+    def __init__(self, in_planes, scale, c, in_else=17, uncertainty_head=True):
         super(Head, self).__init__()
         self.upsample = nn.Sequential(nn.PixelShuffle(2), nn.PixelShuffle(2))
         self.scale = scale
-        if uncertainty:
+        if uncertainty_head:
             self.conv = nn.Sequential(
                                     conv(in_planes*2 // (4*4) + in_else, c),
-                                    UncertaintyDropout2D(p=DROPOUT_FRACTION),
+                                    UncertaintyDropout2D(p=0.1),
                                     conv(c, c),
                                     conv(c, 5),
                                     )
         else:
             self.conv = nn.Sequential(
                                     conv(in_planes*2 // (4*4) + in_else, c),
+                                    
                                     conv(c, c),
                                     conv(c, 5),
                                     )  
@@ -75,9 +72,9 @@ class MultiScaleFlow(nn.Module):
                             kargs['scales'][-1-i], 
                             kargs['hidden_dims'][-1-i],
                             6 if i==0 else 17,
-                            uncertainty=uncertainty_flowest) 
-                            for i in range(self.flow_num_stage)])
-        self.unet = Unet(kargs['c'] * 2, uncertainty=uncertainty_refine)
+                            uncertainty_head=uncertainty_flowest) 
+                            for i in range(self.flow_num_stage)],)
+        self.unet = Unet(kargs['c'] * 2, uncertainty_refine=uncertainty_refine)
 
     def warp_features(self, xs, flow):
         y0 = []

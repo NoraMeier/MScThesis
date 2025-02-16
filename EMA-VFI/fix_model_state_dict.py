@@ -10,6 +10,8 @@ def main():
 
     args = parser.parse_args()
 
+    drop = UncertaintyDropout2D()
+
     model1 = Model(-1, dropout_flowest=True)
     model2 = Model(-1)
 

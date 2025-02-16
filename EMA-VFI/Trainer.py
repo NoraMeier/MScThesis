@@ -48,7 +48,6 @@ class Model:
             if name is None:
                 name = self.name
             self.net.load_state_dict(convert(torch.load(f'ckpt/{name}.pkl')))
-            #self.net.load_state_dict(torch.load(f'ckpt/{name}.pkl'))
     
     def save_model(self, rank=0):
         if rank == 0:

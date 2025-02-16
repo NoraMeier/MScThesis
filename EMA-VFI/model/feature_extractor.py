@@ -116,8 +116,6 @@ class InterFrameAttention(nn.Module):
         super().__init__()
         assert dim % num_heads == 0, f"dim {dim} should be divided by num_heads {num_heads}."
 
-        print(uncertainty)
-
         self.dim = dim
         self.motion_dim = motion_dim
         self.num_heads = num_heads
@@ -529,6 +527,5 @@ class UncertaintyDropout(nn.Dropout):
 
 
 def feature_extractor(uncertainty=False, **kargs):
-    print(str(uncertainty) + " at start")
     model = MotionFormer(uncertainty=uncertainty, **kargs)
     return model
