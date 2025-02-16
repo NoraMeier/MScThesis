@@ -1,0 +1,4 @@
+ensemble average correlation: 0.50677
+featextr average correlation: 0.3961
+flowest average correlation: 0.45535000000000003
+refine average correlation: 0.37979
