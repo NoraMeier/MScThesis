@@ -60,7 +60,7 @@ def colormap(sd, map):
     return sd_rel_color, sd_abs_color
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', default='ours', type=str)
+parser.add_argument('--model', default='ours_small', type=str)
 parser.add_argument('--input_dir', default='example/ex1', type=str)
 parser.add_argument('--uncertainty', default="none", type=str, choices=["none", "featextr", "flowest", "refine", "ensemble"])
 parser.add_argument('--video', default='None', type=str, choices=['None', 'catvideo', 'bg3', 'jojos', 'vimeo'])
